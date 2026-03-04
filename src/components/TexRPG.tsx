@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Gamepad2, 
+  Dices, 
   Shield, 
   Heart, 
   Zap, 
@@ -226,7 +226,7 @@ export default function TexRPG() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[600px] space-y-8">
         <div className="p-8 bg-emerald-50 rounded-[3rem] border-4 border-emerald-100 shadow-xl">
-          <Gamepad2 size={80} className="text-emerald-600 animate-pulse" />
+          <Dices size={80} className="text-emerald-600 animate-pulse" />
         </div>
         <div className="text-center max-w-md">
           <h2 className="text-4xl font-black text-gray-900 mb-4">A Busca do Girassol</h2>

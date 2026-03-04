@@ -13,11 +13,13 @@ import {
   History,
   Plus,
   User,
-  Info
+  Info,
+  Library
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import ProtocolosList from './ProtocolosList';
 import { 
   generateConceptualization, 
   generateGoldProtocol, 
@@ -54,7 +56,7 @@ export default function PortalDashboard({ type, externalPatientId, onPatientChan
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'standard' | 'copingcat' | 'rpd'>(type === 'protocols' ? 'standard' : 'standard');
+  const [activeTab, setActiveTab] = useState<'standard' | 'copingcat' | 'rpd' | 'library'>(type === 'protocols' ? 'library' : 'standard');
   const [rpds, setRpds] = useState<any[]>([]);
   const [newRpd, setNewRpd] = useState({ situacao: '', pensamento: '', emocao: '', comportamento: '' });
   const [expandedRpd, setExpandedRpd] = useState<string | null>(null);
@@ -297,6 +299,12 @@ Comportamentos: Evita reuniões, fala o mínimo possível, ensaia falas por hora
 
       {type === 'protocols' && (
         <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl w-full sm:w-fit overflow-x-auto no-scrollbar">
+          <button 
+            onClick={() => setActiveTab('library')}
+            className={`whitespace-nowrap px-4 sm:px-6 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all ${activeTab === 'library' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Biblioteca
+          </button>
           <button 
             onClick={() => setActiveTab('standard')}
             className={`whitespace-nowrap px-4 sm:px-6 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all ${activeTab === 'standard' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
@@ -541,7 +549,19 @@ Comportamentos: Evita reuniões, fala o mínimo possível, ensaia falas por hora
 
         {/* Result Area */}
         <div className="lg:col-span-8">
-          {activeTab === 'rpd' ? (
+          {activeTab === 'library' && type === 'protocols' ? (
+            <div className="space-y-8">
+              <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                <h3 className="text-xl font-black mb-6 flex items-center gap-3">
+                  <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600">
+                    <Library size={20} />
+                  </div>
+                  Biblioteca de Protocolos TCC
+                </h3>
+                <ProtocolosList />
+              </div>
+            </div>
+          ) : activeTab === 'rpd' ? (
             <div className="space-y-8">
               <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
                 <h3 className="text-xl font-black mb-6 flex items-center gap-3">

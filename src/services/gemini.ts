@@ -63,35 +63,59 @@ ESTRUTURA DO PLANO:
    - Sessões 4-7: Habilidades de Enfrentamento (Relaxamento, Pensamentos Úteis).
    - Sessões 8-16: Exposições Graduadas (Plano F.E.A.R.) e Prevenção de Recaída.`;
 
-export async function generateConceptualization(patientData: string) {
+async function safeGenerateContent(params: any, retries = 3, delay = 2000) {
   const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await ai.models.generateContent(params);
+    } catch (error: any) {
+      const errorMessage = error.message || "";
+      const isUnavailable = errorMessage.includes("503") || errorMessage.includes("UNAVAILABLE") || errorMessage.includes("high demand");
+      const isQuotaExceeded = errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED") || errorMessage.includes("quota");
+
+      if ((isUnavailable || isQuotaExceeded) && i < retries - 1) {
+        const waitTime = isQuotaExceeded ? delay * 2 : delay;
+        console.warn(`Gemini API ${isQuotaExceeded ? 'Quota Exceeded (429)' : 'Busy (503)'}. Retrying in ${waitTime}ms... (Attempt ${i + 1}/${retries})`);
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        delay *= 2; // Exponential backoff
+        continue;
+      }
+
+      if (isQuotaExceeded) {
+        throw new Error("Limite de uso da IA atingido para hoje (Quota Exceeded). Por favor, tente novamente em alguns instantes ou aguarde a renovação do limite diário do Google Gemini.");
+      }
+
+      throw error;
+    }
+  }
+  throw new Error("Falha ao gerar conteúdo após várias tentativas devido a instabilidade nos servidores do Google.");
+}
+
+export async function generateConceptualization(patientData: string) {
+  const response = await safeGenerateContent({
+    model: "gemini-flash-latest",
     contents: [{ parts: [{ text: `${CONCEPTUALIZATION_PROMPT}\n\nDados do Paciente:\n${patientData}` }] }],
   });
   return response.text;
 }
 
 export async function generateGoldProtocol(disorder: string) {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+  const response = await safeGenerateContent({
+    model: "gemini-flash-latest",
     contents: [{ parts: [{ text: `${GOLD_PROTOCOL_PROMPT}\n\nTranstorno/Demanda:\n${disorder}` }] }],
   });
   return response.text;
 }
 
 export async function generateCopingCatPlan(patientInfo: string) {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+  const response = await safeGenerateContent({
+    model: "gemini-flash-latest",
     contents: [{ parts: [{ text: `${COPING_CAT_PROMPT}\n\nInformações do Paciente:\n${patientInfo}` }] }],
   });
   return response.text;
 }
 
 export async function generateSessionDetail(sessionNumber: number, context: string) {
-  const ai = getAI();
   const prompt = `Você é um terapeuta TCC aplicando o protocolo Coping Cat. Sua missão é detalhar a sessão ${sessionNumber} solicitada com foco em scripts práticos e acolhedores.
 Contexto do Paciente: ${context}
 
@@ -102,15 +126,14 @@ ESTRUTURA DA RESPOSTA:
 4. EXERCÍCIO PRÁTICO
 5. RESUMO + TAREFA DE CASA + REFORÇO FINAL`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+  const response = await safeGenerateContent({
+    model: "gemini-flash-latest",
     contents: [{ parts: [{ text: prompt }] }],
   });
   return response.text;
 }
 
 export async function generateRPGEvent(situacao: string, area: string, difficulty: string = 'Médio', focus: string = 'Ansiedade Social') {
-  const ai = getAI();
   const prompt = `Gere um evento de TCC para o jogo "A Busca do Girassol".
 Baseie-se nesta situação real de jovens: "${situacao}"
 Área: ${area}
@@ -120,8 +143,8 @@ O evento deve seguir o modelo cognitivo: Situação -> Pensamentos Automáticos 
 Seja empático e realista para jovens de 12 a 19 anos.
 Retorne em formato JSON com: title, description, situacao, pensamento, emocao, intensidade (0-100).`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+  const response = await safeGenerateContent({
+    model: "gemini-flash-latest",
     contents: [{ parts: [{ text: prompt }] }],
     config: { responseMimeType: "application/json" }
   });
@@ -129,7 +152,6 @@ Retorne em formato JSON com: title, description, situacao, pensamento, emocao, i
 }
 
 export async function analyzeRPGAction(card: any, currentEvent: any) {
-  const ai = getAI();
   const prompt = `O jogador usou a carta TCC "${card.name}" (Categoria: ${card.category}) no evento "${currentEvent.title}".
 Situação: ${currentEvent.situacao}
 Pensamento: ${currentEvent.pensamento}
@@ -138,8 +160,8 @@ Emoção: ${currentEvent.emocao} (Intensidade: ${currentEvent.intensidade}%)
 Analise a consequência baseada em TCC. Retorne feedback, reflexão, ação na vida real e impacto nos status (Ansiedade, Confiança, Evitação, Progresso).
 Retorne em formato JSON.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+  const response = await safeGenerateContent({
+    model: "gemini-flash-latest",
     contents: [{ parts: [{ text: prompt }] }],
     config: { responseMimeType: "application/json" }
   });
@@ -147,7 +169,6 @@ Retorne em formato JSON.`;
 }
 
 export async function generateAvatar(nick: string, race: string, appearance: string) {
-  const ai = getAI();
   const prompt = `Gere uma descrição detalhada para um avatar de RPG TCC.
 Personagem: ${nick}
 Raça: ${race}
@@ -155,16 +176,15 @@ Aparência: ${appearance}
 O estilo deve ser acolhedor, inspirador e adequado para jovens (12-19 anos).
 Retorne uma descrição que possa ser usada para imaginar o personagem.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
+  const response = await safeGenerateContent({
+    model: "gemini-flash-latest",
     contents: [{ parts: [{ text: prompt }] }],
   });
   return response.text;
 }
 
 export async function generateAvatarImage(description: string) {
-  const ai = getAI();
-  const response = await ai.models.generateContent({
+  const response = await safeGenerateContent({
     model: 'gemini-2.5-flash-image',
     contents: {
       parts: [

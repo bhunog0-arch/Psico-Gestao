@@ -3,7 +3,6 @@ import {
   Users, 
   Brain, 
   BookOpen, 
-  Gamepad2, 
   LayoutDashboard, 
   PlusCircle, 
   Search,
@@ -18,7 +17,8 @@ import {
   Settings,
   LogOut,
   ArrowRight,
-  Info
+  Info,
+  Dices
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import PortalDashboard from './components/PortalDashboard';
@@ -127,7 +127,7 @@ export default function App() {
     { id: 'patients', label: 'Pacientes', icon: Users },
     { id: 'conceptualization', label: 'Conceituação', icon: Brain },
     { id: 'protocols', label: 'Protocolos', icon: BookOpen },
-    { id: 'rpg', label: 'RPG Terapêutico', icon: Gamepad2 },
+    { id: 'rpg', label: 'RPG Terapêutico', icon: Dices },
     ...(isAdmin ? [{ id: 'admin', label: 'Admin', icon: Settings }] : []),
   ];
 
@@ -459,7 +459,7 @@ function DashboardOverview({ setView }: { setView: (v: View) => void }) {
           <div className="relative z-10 h-full flex flex-col">
             <div className="flex items-center gap-4 mb-6">
               <div className="p-3 lg:p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">
-                <Gamepad2 size={28} />
+                <Dices size={28} />
               </div>
               <div>
                 <h4 className="text-lg lg:text-xl font-bold">RPG Terapêutico</h4>
