@@ -102,11 +102,13 @@ export default function PortalDashboard({ type, externalPatientId, onPatientChan
   }, []);
 
   useEffect(() => {
-    if (selectedPatientId && type === 'conceptualization') {
+    if (selectedPatientId) {
       loadHistory(selectedPatientId);
-      const p = patients.find(p => p.id === selectedPatientId);
-      if (p && !input) {
-        setInput(`Paciente: ${p.name}, ${p.age} anos.\nQueixa: ${p.complaint}`);
+      if (type === 'conceptualization') {
+        const p = patients.find(p => p.id === selectedPatientId);
+        if (p && !input) {
+          setInput(`Paciente: ${p.name}, ${p.age} anos.\nQueixa: ${p.complaint}`);
+        }
       }
     }
   }, [selectedPatientId, type, patients]);
@@ -335,115 +337,124 @@ Comportamentos: Evita reuniões, fala o mínimo possível, ensaia falas por hora
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Sidebar for Patients & History */}
         <div className="lg:col-span-4 space-y-6">
-          {type === 'conceptualization' && (
-            <>
-              <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
-                <div className="flex items-center justify-between mb-4">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Paciente Selecionado</label>
-                  <button 
-                    onClick={() => setShowNewPatientForm(!showNewPatientForm)}
-                    className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors"
-                  >
-                    <Plus size={18} />
-                  </button>
-                </div>
-                
-                {showNewPatientForm ? (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="space-y-3 p-4 bg-gray-50 rounded-2xl border border-gray-100"
-                  >
-                    <input 
-                      type="text" 
-                      placeholder="Nome Completo" 
-                      value={newPatient.name}
-                      onChange={e => setNewPatient({...newPatient, name: e.target.value})}
-                      className="w-full text-sm p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                    />
-                    <input 
-                      type="number" 
-                      placeholder="Idade" 
-                      value={newPatient.age || ''}
-                      onChange={e => setNewPatient({...newPatient, age: parseInt(e.target.value)})}
-                      className="w-full text-sm p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                    />
-                    <textarea 
-                      placeholder="Queixa Principal" 
-                      value={newPatient.complaint}
-                      onChange={e => setNewPatient({...newPatient, complaint: e.target.value})}
-                      className="w-full text-sm p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none h-20"
-                    />
-                    {patientError && (
-                      <p className="text-[10px] text-red-500 font-bold ml-1">{patientError}</p>
-                    )}
-                    <button 
-                      onClick={handleCreatePatient}
-                      className="w-full py-3 bg-emerald-600 text-white text-sm rounded-xl font-bold shadow-lg shadow-emerald-100"
-                    >
-                      Finalizar Cadastro
-                    </button>
-                  </motion.div>
-                ) : (
-                  <select 
-                    value={selectedPatientId}
-                    onChange={e => handlePatientSelect(e.target.value)}
-                    className="w-full text-sm p-4 rounded-2xl border border-gray-100 bg-gray-50/50 focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-bold text-gray-700"
-                  >
-                    <option value="">Selecionar Paciente...</option>
-                    {patients.map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
+          <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Paciente Selecionado</label>
+              <button 
+                onClick={() => setShowNewPatientForm(!showNewPatientForm)}
+                className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors"
+              >
+                <Plus size={18} />
+              </button>
+            </div>
+            
+            {showNewPatientForm ? (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="space-y-3 p-4 bg-gray-50 rounded-2xl border border-gray-100"
+              >
+                <input 
+                  type="text" 
+                  placeholder="Nome Completo" 
+                  value={newPatient.name}
+                  onChange={e => setNewPatient({...newPatient, name: e.target.value})}
+                  className="w-full text-sm p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+                <input 
+                  type="number" 
+                  placeholder="Idade" 
+                  value={newPatient.age || ''}
+                  onChange={e => setNewPatient({...newPatient, age: parseInt(e.target.value)})}
+                  className="w-full text-sm p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                />
+                <textarea 
+                  placeholder="Queixa Principal" 
+                  value={newPatient.complaint}
+                  onChange={e => setNewPatient({...newPatient, complaint: e.target.value})}
+                  className="w-full text-sm p-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none h-20"
+                />
+                {patientError && (
+                  <p className="text-[10px] text-red-500 font-bold ml-1">{patientError}</p>
                 )}
-              </div>
+                <button 
+                  onClick={handleCreatePatient}
+                  className="w-full py-3 bg-emerald-600 text-white text-sm rounded-xl font-bold shadow-lg shadow-emerald-100"
+                >
+                  Finalizar Cadastro
+                </button>
+              </motion.div>
+            ) : (
+              <select 
+                value={selectedPatientId}
+                onChange={e => handlePatientSelect(e.target.value)}
+                className="w-full text-sm p-4 rounded-2xl border border-gray-100 bg-gray-50/50 focus:ring-2 focus:ring-emerald-500 focus:border-transparent font-bold text-gray-700"
+              >
+                <option value="">Selecionar Paciente...</option>
+                {patients.map(p => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
 
-              {selectedPatientId && history.length > 0 && (
-                <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
-                  <div className="flex items-center justify-between mb-6">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 flex items-center gap-2">
-                      <History size={14} />
-                      Histórico Clínico
-                    </h4>
-                    <select 
-                      value={dateFilter}
-                      onChange={e => setDateFilter(e.target.value as any)}
-                      className="text-[10px] font-bold border-none bg-gray-50 rounded-lg px-2 py-1 focus:ring-0 text-emerald-700"
-                    >
-                      <option value="all">Tudo</option>
-                      <option value="today">Hoje</option>
-                      <option value="week">7 dias</option>
-                      <option value="month">30 dias</option>
-                    </select>
-                  </div>
-                  <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar pr-2">
-                    {filteredHistory.map(record => (
-                      <button
-                        key={record.id}
-                        onClick={() => loadFromHistory(record)}
-                        className="w-full text-left p-4 rounded-2xl hover:bg-emerald-50 border border-gray-50 hover:border-emerald-100 transition-all group"
-                      >
-                        <div className="flex justify-between items-start mb-1">
-                          <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
-                            {new Date(record.created_at).toLocaleDateString()}
-                          </p>
-                          <ChevronRight size={12} className="text-gray-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
-                        </div>
-                        <p className="text-xs font-semibold text-gray-700 line-clamp-2 leading-relaxed">
-                          {record.input_data}
-                        </p>
-                      </button>
-                    ))}
-                    {filteredHistory.length === 0 && (
-                      <div className="text-center py-8">
-                        <History size={32} className="mx-auto text-gray-100 mb-2" />
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nenhum registro</p>
+          {selectedPatientId && history.length > 0 && (
+            <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between mb-6">
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 flex items-center gap-2">
+                  <History size={14} />
+                  {type === 'conceptualization' ? 'Histórico Clínico' : 'Conceituações Salvas'}
+                </h4>
+                <select 
+                  value={dateFilter}
+                  onChange={e => setDateFilter(e.target.value as any)}
+                  className="text-[10px] font-bold border-none bg-gray-50 rounded-lg px-2 py-1 focus:ring-0 text-emerald-700"
+                >
+                  <option value="all">Tudo</option>
+                  <option value="today">Hoje</option>
+                  <option value="week">7 dias</option>
+                  <option value="month">30 dias</option>
+                </select>
+              </div>
+              <div className="space-y-3 max-h-64 overflow-y-auto custom-scrollbar pr-2">
+                {filteredHistory.map(record => (
+                  <button
+                    key={record.id}
+                    onClick={() => {
+                      if (type === 'protocols') {
+                        setInput(record.result_text);
+                        setResult(null);
+                        alert('Conceituação carregada como contexto para o protocolo.');
+                      } else {
+                        loadFromHistory(record);
+                      }
+                    }}
+                    className="w-full text-left p-4 rounded-2xl hover:bg-emerald-50 border border-gray-50 hover:border-emerald-100 transition-all group"
+                  >
+                    <div className="flex justify-between items-start mb-1">
+                      <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
+                        {new Date(record.created_at).toLocaleDateString()}
+                      </p>
+                      <ChevronRight size={12} className="text-gray-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
+                    </div>
+                    <p className="text-xs font-semibold text-gray-700 line-clamp-2 leading-relaxed">
+                      {record.input_data}
+                    </p>
+                    {type === 'protocols' && (
+                      <div className="mt-2 flex items-center gap-1 text-[9px] font-bold text-emerald-600 uppercase">
+                        <Plus size={10} /> Usar como Contexto
                       </div>
                     )}
+                  </button>
+                ))}
+                {filteredHistory.length === 0 && (
+                  <div className="text-center py-8">
+                    <History size={32} className="mx-auto text-gray-100 mb-2" />
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nenhum registro</p>
                   </div>
-                </div>
-              )}
-            </>
+                )}
+              </div>
+            </div>
           )}
 
           <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100">
@@ -477,6 +488,20 @@ Comportamentos: Evita reuniões, fala o mínimo possível, ensaia falas por hora
                 >
                   <Save size={16} />
                   Atualizar Prontuário
+                </button>
+              )}
+
+              {selectedPatientId && type === 'protocols' && history.length > 0 && (
+                <button 
+                  onClick={() => {
+                    setInput(history[0].result_text);
+                    setResult(null);
+                    alert('Última conceituação carregada como contexto!');
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3 text-emerald-600 border border-emerald-100 rounded-2xl text-xs font-bold hover:bg-emerald-50 transition-all"
+                >
+                  <Brain size={16} />
+                  Puxar Última Conceituação
                 </button>
               )}
             </div>
