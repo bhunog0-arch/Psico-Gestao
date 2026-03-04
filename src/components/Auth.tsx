@@ -75,26 +75,26 @@ export default function Auth({ onSuccess }: AuthProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFDFD] flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#FDFDFD] flex items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-md">
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-600 rounded-2xl text-white shadow-xl shadow-emerald-200 mb-6">
-            <Stethoscope size={32} />
+        <div className="text-center mb-8 lg:mb-10">
+          <div className="inline-flex items-center justify-center w-14 h-14 lg:w-16 lg:h-16 bg-emerald-600 rounded-2xl text-white shadow-xl shadow-emerald-200 mb-4 lg:mb-6">
+            <Stethoscope size={28} className="lg:w-8 lg:h-8" />
           </div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">PsicoGestão AI</h1>
-          <p className="text-gray-500 mt-2 font-medium">A inteligência clínica ao seu alcance.</p>
+          <h1 className="text-2xl lg:text-3xl font-black text-gray-900 tracking-tight">PsicoGestão AI</h1>
+          <p className="text-gray-500 mt-2 font-medium text-sm lg:text-base">A inteligência clínica ao seu alcance.</p>
         </div>
 
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-gray-100 border border-gray-100"
+          className="bg-white p-6 lg:p-8 rounded-[2rem] lg:rounded-[2.5rem] shadow-xl shadow-gray-100 border border-gray-100"
         >
-          <div className="flex items-center justify-center gap-2 mb-8">
+          <div className="flex items-center justify-center gap-2 mb-6 lg:mb-8">
             <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
-              <LogIn size={20} />
+              <LogIn size={18} className="lg:w-5 lg:h-5" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900">Acesso Restrito</h2>
+            <h2 className="text-lg lg:text-xl font-bold text-gray-900">Acesso Restrito</h2>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -159,7 +159,7 @@ export default function Auth({ onSuccess }: AuthProps) {
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-lg shadow-emerald-100 flex items-center justify-center gap-2 group"
+              className="w-full py-3.5 lg:py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-lg shadow-emerald-100 flex items-center justify-center gap-2 group text-sm lg:text-base"
             >
               {loading ? (
                 <Loader2 className="animate-spin" size={20} />

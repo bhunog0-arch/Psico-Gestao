@@ -257,13 +257,13 @@ Comportamentos: Evita reuniões, fala o mínimo possível, ensaia falas por hora
   };
 
   return (
-    <div className="space-y-8">
-      <header className="flex justify-between items-start">
+    <div className="space-y-6 lg:space-y-8">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-extrabold tracking-tight text-gray-900">
+          <h2 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-gray-900">
             {type === 'conceptualization' ? 'Conceituação de Caso' : 'Protocolos Terapêuticos'}
           </h2>
-          <p className="text-gray-500 mt-1">
+          <p className="text-gray-500 mt-1 text-sm lg:text-base">
             {type === 'conceptualization' 
               ? 'Mapeamento cognitivo estruturado baseado no modelo de Beck.' 
               : 'Guias práticos e protocolos baseados em evidências científicas.'}
@@ -272,7 +272,7 @@ Comportamentos: Evita reuniões, fala o mínimo possível, ensaia falas por hora
         {type === 'conceptualization' && (
           <button 
             onClick={fillExample}
-            className="px-4 py-2 text-xs font-bold text-emerald-600 bg-emerald-50 rounded-xl hover:bg-emerald-100 transition-colors"
+            className="w-full sm:w-auto px-4 py-2 text-xs font-bold text-emerald-600 bg-emerald-50 rounded-xl hover:bg-emerald-100 transition-colors"
           >
             Carregar Exemplo
           </button>
@@ -296,22 +296,22 @@ Comportamentos: Evita reuniões, fala o mínimo possível, ensaia falas por hora
       )}
 
       {type === 'protocols' && (
-        <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl w-fit">
+        <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl w-full sm:w-fit overflow-x-auto no-scrollbar">
           <button 
             onClick={() => setActiveTab('standard')}
-            className={`px-6 py-2 text-sm font-bold rounded-xl transition-all ${activeTab === 'standard' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`whitespace-nowrap px-4 sm:px-6 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all ${activeTab === 'standard' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
             Protocolos Gerais
           </button>
           <button 
             onClick={() => setActiveTab('copingcat')}
-            className={`px-6 py-2 text-sm font-bold rounded-xl transition-all ${activeTab === 'copingcat' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`whitespace-nowrap px-4 sm:px-6 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all ${activeTab === 'copingcat' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
-            Coping Cat (Todas as Idades)
+            Coping Cat
           </button>
           <button 
             onClick={() => setActiveTab('rpd')}
-            className={`px-6 py-2 text-sm font-bold rounded-xl transition-all ${activeTab === 'rpd' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`whitespace-nowrap px-4 sm:px-6 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all ${activeTab === 'rpd' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
             Registros (RPD)
           </button>
@@ -319,16 +319,16 @@ Comportamentos: Evita reuniões, fala o mínimo possível, ensaia falas por hora
       )}
 
       {type === 'conceptualization' && (
-        <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl w-fit">
+        <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl w-full sm:w-fit overflow-x-auto no-scrollbar">
           <button 
             onClick={() => setActiveTab('standard')}
-            className={`px-6 py-2 text-sm font-bold rounded-xl transition-all ${activeTab === 'standard' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`whitespace-nowrap px-4 sm:px-6 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all ${activeTab === 'standard' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
             Conceituação
           </button>
           <button 
             onClick={() => setActiveTab('rpd')}
-            className={`px-6 py-2 text-sm font-bold rounded-xl transition-all ${activeTab === 'rpd' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`whitespace-nowrap px-4 sm:px-6 py-2 text-xs sm:text-sm font-bold rounded-xl transition-all ${activeTab === 'rpd' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
           >
             Registros (RPD)
           </button>

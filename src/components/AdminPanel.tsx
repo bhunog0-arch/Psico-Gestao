@@ -44,19 +44,19 @@ export default function AdminPanel() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 lg:space-y-8">
       <header>
-        <h2 className="text-3xl font-extrabold tracking-tight text-gray-900">Painel do Administrador</h2>
-        <p className="text-gray-500 mt-1">Gerenciamento de acesso e novos profissionais.</p>
+        <h2 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-gray-900">Painel do Administrador</h2>
+        <p className="text-gray-500 mt-1 text-sm lg:text-base">Gerenciamento de acesso e novos profissionais.</p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
         <motion.section 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100"
+          className="bg-white p-6 lg:p-8 rounded-[2rem] lg:rounded-[2.5rem] shadow-sm border border-gray-100"
         >
-          <div className="flex items-center gap-3 mb-8">
+          <div className="flex items-center gap-3 mb-6 lg:mb-8">
             <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-600">
               <UserPlus size={24} />
             </div>
@@ -118,14 +118,14 @@ export default function AdminPanel() {
         </motion.section>
 
         <section className="space-y-6">
-          <div className="bg-emerald-900 p-8 rounded-[2.5rem] shadow-xl text-white">
+          <div className="bg-emerald-900 p-6 lg:p-8 rounded-[2rem] lg:rounded-[2.5rem] shadow-xl text-white">
             <div className="flex items-center gap-4 mb-6">
               <div className="p-3 bg-white/10 rounded-2xl">
                 <ShieldCheck size={24} />
               </div>
               <h4 className="text-xl font-bold">Controle de Acesso</h4>
             </div>
-            <ul className="space-y-4 text-emerald-100/80 text-sm">
+            <ul className="space-y-4 text-emerald-100/80 text-xs lg:text-sm">
               <li className="flex items-start gap-3">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5"></div>
                 Apenas você (Admin) pode criar novas contas.
@@ -141,7 +141,7 @@ export default function AdminPanel() {
             </ul>
           </div>
 
-          <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+          <div className="bg-white p-6 lg:p-8 rounded-[2rem] lg:rounded-[2.5rem] shadow-sm border border-gray-100">
             <h4 className="font-bold text-gray-900 mb-4">Status do Sistema</h4>
             <div className="space-y-4">
               <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">

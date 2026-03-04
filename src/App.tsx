@@ -41,6 +41,7 @@ export default function App() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [apiKeyMissing, setApiKeyMissing] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const key = import.meta.env.VITE_GEMINI_API_KEY;
@@ -131,11 +132,27 @@ export default function App() {
   ];
 
   return (
-    <div className="flex h-screen bg-[#FDFDFD] text-[#121212] font-sans selection:bg-emerald-100">
+    <div className="flex h-screen bg-[#FDFDFD] text-[#121212] font-sans selection:bg-emerald-100 overflow-hidden">
+      {/* Mobile Sidebar Overlay */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 lg:hidden"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-100 flex flex-col z-20">
-        <div className="p-8">
-          <div className="flex items-center gap-3 mb-2">
+      <aside className={`
+        fixed inset-y-0 left-0 w-64 bg-white border-r border-gray-100 flex flex-col z-40 transition-transform duration-300 lg:relative lg:translate-x-0
+        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <div className="p-8 flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-200">
               <Stethoscope size={22} />
             </div>
@@ -146,13 +163,22 @@ export default function App() {
               </span>
             </div>
           </div>
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="lg:hidden p-2 text-gray-400 hover:text-gray-600"
+          >
+            <RefreshCw size={20} className="rotate-45" />
+          </button>
         </div>
 
-        <nav className="flex-1 px-4 space-y-1.5">
+        <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">
           {navItems.map((item) => (
             <button
               key={item.id}
-              onClick={() => setCurrentView(item.id as View)}
+              onClick={() => {
+                setCurrentView(item.id as View);
+                setIsMobileMenuOpen(false);
+              }}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group relative ${
                 currentView === item.id
                   ? 'text-emerald-700 font-bold'
@@ -178,7 +204,7 @@ export default function App() {
           ))}
         </nav>
 
-        <div className="p-6 mt-auto border-t border-gray-50">
+        <div className="p-6 mt-auto border-t border-gray-50 space-y-4">
           <div className="flex items-center gap-3 p-3 rounded-2xl bg-gray-50/50 border border-gray-100">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
               {isAdmin ? 'AD' : user.email?.charAt(0).toUpperCase()}
@@ -192,6 +218,13 @@ export default function App() {
               </p>
             </div>
           </div>
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 text-rose-600 hover:bg-rose-50 rounded-xl transition-all font-bold text-sm lg:hidden"
+          >
+            <LogOut size={18} />
+            Sair da Conta
+          </button>
         </div>
       </aside>
 
@@ -211,19 +244,27 @@ export default function App() {
           </div>
         )}
         {/* Top Header */}
-        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <span className="capitalize">{currentView}</span>
-            {selectedPatientId && currentView !== 'admin' && (
-              <>
-                <ChevronRight size={14} />
-                <span className="text-emerald-600 font-medium">
-                  {patients.find(p => p.id === selectedPatientId)?.name || 'Paciente'}
-                </span>
-              </>
-            )}
+        <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 lg:px-8 py-3 lg:py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3 lg:gap-4">
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="lg:hidden p-2 text-gray-500 hover:bg-gray-50 rounded-xl"
+            >
+              <LayoutDashboard size={20} />
+            </button>
+            <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-500 overflow-hidden">
+              <span className="capitalize truncate hidden sm:inline">{currentView}</span>
+              {selectedPatientId && currentView !== 'admin' && (
+                <>
+                  <ChevronRight size={14} className="hidden sm:inline" />
+                  <span className="text-emerald-600 font-medium truncate max-w-[100px] sm:max-w-none">
+                    {patients.find(p => p.id === selectedPatientId)?.name || 'Paciente'}
+                  </span>
+                </>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1 lg:gap-4">
             <div className="relative">
               <button 
                 onClick={() => setShowNotifications(!showNotifications)}
@@ -241,7 +282,7 @@ export default function App() {
                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                    className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden"
+                    className="fixed sm:absolute right-4 sm:right-0 mt-2 w-[calc(100vw-32px)] sm:w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden"
                   >
                     <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
                       <h4 className="text-xs font-black uppercase tracking-widest text-gray-400">Notificações</h4>
@@ -252,7 +293,7 @@ export default function App() {
                         Limpar Tudo
                       </button>
                     </div>
-                    <div className="max-h-96 overflow-y-auto custom-scrollbar">
+                    <div className="max-h-[60vh] sm:max-h-96 overflow-y-auto custom-scrollbar">
                       {notifications.map((n, i) => (
                         <div key={i} className="p-4 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
                           <p className="text-sm font-bold text-gray-900 mb-1">{n.title}</p>
@@ -271,13 +312,13 @@ export default function App() {
                 )}
               </AnimatePresence>
             </div>
-            <div className="h-6 w-px bg-gray-200"></div>
+            <div className="h-6 w-px bg-gray-200 hidden sm:block"></div>
             <button 
               onClick={handleLogout}
-              className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900"
+              className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-rose-600 transition-colors"
             >
               <LogOut size={18} />
-              Sair
+              <span className="hidden sm:inline">Sair</span>
             </button>
           </div>
         </header>
@@ -289,7 +330,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="p-8 max-w-7xl mx-auto"
+            className="p-4 lg:p-8 max-w-7xl mx-auto"
           >
             {currentView === 'dashboard' && <DashboardOverview setView={setCurrentView} />}
             {currentView === 'patients' && (
@@ -333,24 +374,24 @@ function DashboardOverview({ setView }: { setView: (v: View) => void }) {
   }, []);
 
   return (
-    <div className="space-y-10">
-      <header className="flex justify-between items-end">
+    <div className="space-y-6 lg:space-y-10">
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-4">
         <div>
-          <h2 className="text-4xl font-extrabold tracking-tight text-gray-900">Painel Clínico</h2>
-          <p className="text-gray-500 mt-2 text-lg">Visão geral das suas atividades e pacientes.</p>
+          <h2 className="text-2xl lg:text-4xl font-extrabold tracking-tight text-gray-900">Painel Clínico</h2>
+          <p className="text-gray-500 mt-1 lg:mt-2 text-base lg:text-lg">Visão geral das suas atividades e pacientes.</p>
         </div>
-        <div className="flex gap-3">
-          <button className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors shadow-sm">
-            Exportar Relatório
+        <div className="flex gap-2 lg:gap-3 w-full lg:w-auto">
+          <button className="flex-1 lg:flex-none px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold hover:bg-gray-50 transition-colors shadow-sm">
+            Relatório
           </button>
-          <button className="px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 flex items-center gap-2">
+          <button className="flex-1 lg:flex-none px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 flex items-center justify-center gap-2">
             <PlusCircle size={18} />
             Nova Sessão
           </button>
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-8">
         <StatCard 
           title="Pacientes Ativos" 
           value={loading ? "..." : stats.activePatients.toString()} 
@@ -374,10 +415,10 @@ function DashboardOverview({ setView }: { setView: (v: View) => void }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <section className="lg:col-span-2 bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-xl font-bold flex items-center gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        <section className="lg:col-span-2 bg-white p-6 lg:p-8 rounded-[2rem] shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-6 lg:mb-8">
+            <h3 className="text-lg lg:text-xl font-bold flex items-center gap-3">
               <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
                 <Brain size={22} />
               </div>
@@ -385,7 +426,7 @@ function DashboardOverview({ setView }: { setView: (v: View) => void }) {
             </h3>
             <button className="text-sm font-semibold text-emerald-600 hover:underline">Ver todas</button>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 lg:gap-4">
             <QuickAction 
               title="Nova Conceituação" 
               desc="Gerar mapa cognitivo Beck completo" 
@@ -413,24 +454,24 @@ function DashboardOverview({ setView }: { setView: (v: View) => void }) {
           </div>
         </section>
 
-        <section className="bg-emerald-900 p-8 rounded-[2rem] shadow-xl text-white relative overflow-hidden group">
+        <section className="bg-emerald-900 p-6 lg:p-8 rounded-[2rem] shadow-xl text-white relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-12 bg-emerald-800/20 rounded-full blur-3xl -mr-12 -mt-12 group-hover:scale-110 transition-transform duration-700"></div>
           <div className="relative z-10 h-full flex flex-col">
             <div className="flex items-center gap-4 mb-6">
-              <div className="p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">
-                <Gamepad2 size={32} />
+              <div className="p-3 lg:p-4 bg-white/10 backdrop-blur-md rounded-2xl border border-white/10">
+                <Gamepad2 size={28} />
               </div>
               <div>
-                <h4 className="text-xl font-bold">RPG Terapêutico</h4>
-                <p className="text-emerald-300 text-sm">A Busca do Girassol</p>
+                <h4 className="text-lg lg:text-xl font-bold">RPG Terapêutico</h4>
+                <p className="text-emerald-300 text-xs lg:text-sm">A Busca do Girassol</p>
               </div>
             </div>
-            <p className="text-emerald-100/80 text-sm leading-relaxed mb-8">
+            <p className="text-emerald-100/80 text-xs lg:text-sm leading-relaxed mb-6 lg:mb-8">
               Engaje seus pacientes com uma jornada gamificada de TCC. Ideal para trabalhar pensamentos automáticos e enfrentamento.
             </p>
             <button 
               onClick={() => setView('rpg')}
-              className="mt-auto w-full py-4 bg-white text-emerald-900 rounded-2xl font-bold hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 group/btn shadow-lg"
+              className="mt-auto w-full py-3 lg:py-4 bg-white text-emerald-900 rounded-2xl font-bold hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 group/btn shadow-lg text-sm lg:text-base"
             >
               Iniciar Sessão de Jogo
               <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
@@ -450,16 +491,16 @@ function StatCard({ title, value, icon: Icon, color, trend }: any) {
   };
 
   return (
-    <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 group hover:shadow-md transition-all duration-300">
+    <div className="bg-white p-6 lg:p-8 rounded-[2rem] shadow-sm border border-gray-100 group hover:shadow-md transition-all duration-300">
       <div className="flex justify-between items-start mb-4">
-        <div className={`p-4 rounded-2xl ${colors[color]} border transition-transform group-hover:scale-110 duration-300`}>
-          <Icon size={28} />
+        <div className={`p-3 lg:p-4 rounded-2xl ${colors[color]} border transition-transform group-hover:scale-110 duration-300`}>
+          <Icon size={24} className="lg:w-7 lg:h-7" />
         </div>
         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{trend}</span>
       </div>
       <div>
-        <p className="text-sm text-gray-500 font-semibold uppercase tracking-wider mb-1">{title}</p>
-        <p className="text-4xl font-black text-gray-900">{value}</p>
+        <p className="text-xs lg:text-sm text-gray-500 font-semibold uppercase tracking-wider mb-1">{title}</p>
+        <p className="text-3xl lg:text-4xl font-black text-gray-900">{value}</p>
       </div>
     </div>
   );
@@ -469,16 +510,16 @@ function QuickAction({ title, desc, icon: Icon, onClick }: any) {
   return (
     <button 
       onClick={onClick}
-      className="w-full flex items-center gap-4 p-5 rounded-2xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/50 transition-all group text-left"
+      className="w-full flex items-center gap-3 lg:gap-4 p-4 lg:p-5 rounded-2xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/50 transition-all group text-left"
     >
-      <div className="p-3 bg-gray-50 rounded-xl text-gray-400 group-hover:bg-white group-hover:text-emerald-600 group-hover:shadow-sm transition-all">
-        <Icon size={22} />
+      <div className="p-2 lg:p-3 bg-gray-50 rounded-xl text-gray-400 group-hover:bg-white group-hover:text-emerald-600 group-hover:shadow-sm transition-all shrink-0">
+        <Icon size={20} className="lg:w-[22px] lg:h-[22px]" />
       </div>
-      <div className="flex-1">
-        <h4 className="font-bold text-gray-900 group-hover:text-emerald-800 transition-colors">{title}</h4>
-        <p className="text-xs text-gray-500 leading-relaxed">{desc}</p>
+      <div className="flex-1 min-w-0">
+        <h4 className="font-bold text-gray-900 group-hover:text-emerald-800 transition-colors text-sm lg:text-base truncate">{title}</h4>
+        <p className="text-[10px] lg:text-xs text-gray-500 leading-relaxed line-clamp-1">{desc}</p>
       </div>
-      <ChevronRight size={18} className="text-gray-300 group-hover:text-emerald-600 transition-all group-hover:translate-x-1" />
+      <ChevronRight size={16} className="text-gray-300 group-hover:text-emerald-600 transition-all group-hover:translate-x-1 shrink-0" />
     </button>
   );
 }
@@ -513,20 +554,20 @@ function PatientsList({ patients, loading, selectedId, onSelect, onViewProntuari
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 lg:space-y-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-extrabold tracking-tight text-gray-900">Meus Pacientes</h2>
-          <p className="text-gray-500 mt-1">Gerencie seu cadastro e histórico clínico.</p>
+          <h2 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-gray-900">Meus Pacientes</h2>
+          <p className="text-gray-500 mt-1 text-sm lg:text-base">Gerencie seu cadastro e histórico clínico.</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-2 w-full sm:w-auto">
           <button 
             onClick={refresh}
             className="p-3 text-gray-400 hover:bg-gray-100 rounded-2xl transition-all active:rotate-180 duration-500"
           >
             <RefreshCw size={20} />
           </button>
-          <button className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100">
+          <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 text-sm">
             <PlusCircle size={20} />
             Novo Paciente
           </button>
@@ -534,23 +575,23 @@ function PatientsList({ patients, loading, selectedId, onSelect, onViewProntuari
       </div>
 
       <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-50 bg-gray-50/30 flex flex-col md:flex-row gap-4 items-center">
+        <div className="p-4 lg:p-6 border-b border-gray-50 bg-gray-50/30 flex flex-col sm:flex-row gap-4 items-center">
           <div className="flex items-center gap-3 flex-1 w-full">
             <Search size={20} className="text-gray-400" />
             <input 
               type="text" 
-              placeholder="Buscar por nome ou queixa..." 
+              placeholder="Buscar..." 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent border-none focus:ring-0 text-base w-full placeholder:text-gray-400 font-medium"
+              className="bg-transparent border-none focus:ring-0 text-sm lg:text-base w-full placeholder:text-gray-400 font-medium"
             />
           </div>
-          <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 whitespace-nowrap">Filtrar:</label>
             <select 
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="bg-white border border-gray-100 rounded-xl px-4 py-2 text-xs font-bold text-gray-600 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              className="bg-white border border-gray-100 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-600 focus:ring-2 focus:ring-emerald-500 focus:border-transparent w-full sm:w-auto"
             >
               <option value="all">Todos</option>
               <option value="active">Ativos</option>
@@ -561,20 +602,20 @@ function PatientsList({ patients, loading, selectedId, onSelect, onViewProntuari
         </div>
         
         {loading ? (
-          <div className="p-24 flex flex-col items-center justify-center text-gray-400">
+          <div className="p-12 lg:p-24 flex flex-col items-center justify-center text-gray-400">
             <Loader2 className="animate-spin mb-4 text-emerald-500" size={32} />
             <p className="text-sm font-medium tracking-wide">Sincronizando dados...</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+            <table className="w-full text-left border-collapse min-w-[600px] lg:min-w-full">
               <thead>
                 <tr className="text-[10px] uppercase tracking-[0.2em] text-gray-400 border-b border-gray-50">
-                  <th className="px-8 py-5 font-bold">Nome do Paciente</th>
-                  <th className="px-8 py-5 font-bold">Idade</th>
-                  <th className="px-8 py-5 font-bold">Queixa Principal</th>
-                  <th className="px-8 py-5 font-bold">Status</th>
-                  <th className="px-8 py-5 font-bold text-right">Ações</th>
+                  <th className="px-4 lg:px-8 py-4 lg:py-5 font-bold">Nome</th>
+                  <th className="px-4 lg:px-8 py-4 lg:py-5 font-bold">Idade</th>
+                  <th className="px-4 lg:px-8 py-4 lg:py-5 font-bold hidden md:table-cell">Queixa Principal</th>
+                  <th className="px-4 lg:px-8 py-4 lg:py-5 font-bold">Status</th>
+                  <th className="px-4 lg:px-8 py-4 lg:py-5 font-bold text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -586,26 +627,26 @@ function PatientsList({ patients, loading, selectedId, onSelect, onViewProntuari
                       selectedId === p.id ? 'bg-emerald-50/50' : 'hover:bg-gray-50/50'
                     }`}
                   >
-                    <td className="px-8 py-6">
+                    <td className="px-4 lg:px-8 py-4 lg:py-6">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm transition-colors ${
+                        <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl flex items-center justify-center font-bold text-xs lg:text-sm transition-colors shrink-0 ${
                           selectedId === p.id ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-500 group-hover:bg-emerald-100 group-hover:text-emerald-600'
                         }`}>
                           {p.name.charAt(0)}
                         </div>
-                        <span className="font-bold text-gray-900">{p.name}</span>
+                        <span className="font-bold text-gray-900 text-sm lg:text-base truncate max-w-[120px] sm:max-w-none">{p.name}</span>
                       </div>
                     </td>
-                    <td className="px-8 py-6 text-sm text-gray-500 font-medium">{p.age} anos</td>
-                    <td className="px-8 py-6">
+                    <td className="px-4 lg:px-8 py-4 lg:py-6 text-xs lg:text-sm text-gray-500 font-medium">{p.age} anos</td>
+                    <td className="px-4 lg:px-8 py-4 lg:py-6 hidden md:table-cell">
                       <p className="text-sm text-gray-600 line-clamp-1 max-w-xs">{p.complaint}</p>
                     </td>
-                    <td className="px-8 py-6">
-                      <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${getStatusColor(p.status)}`}>
+                    <td className="px-4 lg:px-8 py-4 lg:py-6">
+                      <span className={`px-2 py-0.5 lg:px-3 lg:py-1 rounded-lg text-[9px] lg:text-[10px] font-black uppercase tracking-widest ${getStatusColor(p.status)}`}>
                         {getStatusLabel(p.status)}
                       </span>
                     </td>
-                    <td className="px-8 py-6 text-right">
+                    <td className="px-4 lg:px-8 py-4 lg:py-6 text-right">
                       <div className="flex justify-end gap-2">
                         {selectedId === p.id ? (
                           <motion.button 
@@ -615,14 +656,14 @@ function PatientsList({ patients, loading, selectedId, onSelect, onViewProntuari
                               e.stopPropagation();
                               onViewProntuario(p.id);
                             }}
-                            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
+                            className="flex items-center gap-2 px-3 py-1.5 lg:px-4 lg:py-2 bg-emerald-600 text-white rounded-lg lg:rounded-xl text-[10px] lg:text-xs font-bold hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100"
                           >
                             <FileText size={14} />
-                            Ver Prontuário
+                            <span className="hidden sm:inline">Prontuário</span>
                           </motion.button>
                         ) : (
-                          <button className="text-gray-400 hover:text-emerald-600 text-xs font-bold transition-colors uppercase tracking-widest">
-                            Selecionar
+                          <button className="text-gray-400 hover:text-emerald-600 text-[10px] font-bold transition-colors uppercase tracking-widest">
+                            Ver
                           </button>
                         )}
                       </div>
