@@ -138,6 +138,38 @@ export async function getConceptualizationHistory(patientId: string) {
   return data;
 }
 
+export async function getRpds(patientId: string) {
+  const supabase = getSupabase();
+  if (!supabase) return [];
+
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase
+    .from('rpds')
+    .select('*')
+    .eq('patient_id', patientId)
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data;
+}
+
+export async function saveRpd(patientId: string, rpd: { situacao: string; pensamento: string; emocao: string; comportamento: string }) {
+  const supabase = getSupabase();
+  if (!supabase) throw new Error('Supabase not configured');
+
+  const user = await getCurrentUser();
+  if (!user) throw new Error('User not authenticated');
+
+  const { data, error } = await supabase
+    .from('rpds')
+    .insert([{ ...rpd, patient_id: patientId, user_id: user.id }])
+    .select();
+  if (error) throw error;
+  return data[0];
+}
+
 export async function getDashboardStats() {
   const supabase = getSupabase();
   if (!supabase) return { activePatients: 0, todaySessions: 0, savedProtocols: 0 };

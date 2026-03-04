@@ -135,3 +135,45 @@ Retorne em formato JSON.`;
   });
   return JSON.parse(response.text || "{}");
 }
+
+export async function generateAvatar(nick: string, race: string, appearance: string) {
+  const ai = getAI();
+  const prompt = `Gere uma descrição detalhada para um avatar de RPG TCC.
+Personagem: ${nick}
+Raça: ${race}
+Aparência: ${appearance}
+O estilo deve ser acolhedor, inspirador e adequado para jovens (12-19 anos).
+Retorne uma descrição que possa ser usada para imaginar o personagem.`;
+
+  const response = await ai.models.generateContent({
+    model: "gemini-3-flash-preview",
+    contents: [{ parts: [{ text: prompt }] }],
+  });
+  return response.text;
+}
+
+export async function generateAvatarImage(description: string) {
+  const ai = getAI();
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash-image',
+    contents: {
+      parts: [
+        {
+          text: `Crie uma ilustração de um avatar de RPG para jovens. Estilo arte digital moderna, limpa e amigável. Descrição: ${description}`,
+        },
+      ],
+    },
+    config: {
+      imageConfig: {
+            aspectRatio: "1:1"
+        }
+    },
+  });
+  
+  for (const part of response.candidates?.[0]?.content?.parts || []) {
+    if (part.inlineData) {
+      return `data:image/png;base64,${part.inlineData.data}`;
+    }
+  }
+  return null;
+}

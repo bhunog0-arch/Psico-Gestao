@@ -37,6 +37,21 @@ export default function App() {
   const [selectedPatientId, setSelectedPatientId] = useState<string>('');
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  useEffect(() => {
+    // WebSocket for Realtime notifications
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}`);
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      setNotifications(prev => [data, ...prev]);
+    };
+
+    return () => ws.close();
+  }, []);
 
   const ADMIN_EMAIL = 'brego@admin.com';
   const isAdmin = user?.email?.toLowerCase() === ADMIN_EMAIL;
@@ -187,10 +202,53 @@ export default function App() {
             )}
           </div>
           <div className="flex items-center gap-4">
-            <button className="p-2 text-gray-400 hover:text-gray-600 relative">
-              <Bell size={20} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-2 text-gray-400 hover:text-gray-600 relative"
+              >
+                <Bell size={20} />
+                {notifications.length > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                )}
+              </button>
+              
+              <AnimatePresence>
+                {showNotifications && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden"
+                  >
+                    <div className="p-4 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                      <h4 className="text-xs font-black uppercase tracking-widest text-gray-400">Notificações</h4>
+                      <button 
+                        onClick={() => setNotifications([])}
+                        className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700"
+                      >
+                        Limpar Tudo
+                      </button>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto custom-scrollbar">
+                      {notifications.map((n, i) => (
+                        <div key={i} className="p-4 border-b border-gray-50 last:border-0 hover:bg-gray-50 transition-colors">
+                          <p className="text-sm font-bold text-gray-900 mb-1">{n.title}</p>
+                          <p className="text-xs text-gray-500 leading-relaxed">{n.message}</p>
+                          <p className="text-[10px] text-gray-400 mt-2 font-medium">{new Date().toLocaleTimeString()}</p>
+                        </div>
+                      ))}
+                      {notifications.length === 0 && (
+                        <div className="p-8 text-center text-gray-400">
+                          <Bell size={32} className="mx-auto mb-2 opacity-20" />
+                          <p className="text-xs font-bold uppercase tracking-widest">Sem notificações</p>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             <div className="h-6 w-px bg-gray-200"></div>
             <button 
               onClick={handleLogout}

@@ -30,7 +30,9 @@ import {
   updatePatient,
   saveConceptualization, 
   getConceptualizationHistory,
-  isSupabaseConfigured
+  isSupabaseConfigured,
+  getRpds,
+  saveRpd
 } from '../services/supabase';
 import { Patient, ConceptualizationRecord } from '../types';
 
@@ -41,11 +43,6 @@ interface PortalDashboardProps {
 }
 
 export default function PortalDashboard({ type, externalPatientId, onPatientChange }: PortalDashboardProps) {
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'standard' | 'copingcat'>(type === 'protocols' ? 'standard' : 'standard');
-  
   // Patient State
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPatientId, setSelectedPatientId] = useState<string>(externalPatientId || '');
@@ -53,6 +50,43 @@ export default function PortalDashboard({ type, externalPatientId, onPatientChan
   const [showNewPatientForm, setShowNewPatientForm] = useState(false);
   const [newPatient, setNewPatient] = useState({ name: '', age: 0, complaint: '' });
   const [patientError, setPatientError] = useState<string | null>(null);
+
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'standard' | 'copingcat' | 'rpd'>(type === 'protocols' ? 'standard' : 'standard');
+  const [rpds, setRpds] = useState<any[]>([]);
+  const [newRpd, setNewRpd] = useState({ situacao: '', pensamento: '', emocao: '', comportamento: '' });
+
+  useEffect(() => {
+    if (selectedPatientId) {
+      loadRpds(selectedPatientId);
+    }
+  }, [selectedPatientId]);
+
+  const loadRpds = async (id: string) => {
+    try {
+      const data = await getRpds(id);
+      setRpds(data || []);
+    } catch (error) {
+      console.error('Error loading RPDs:', error);
+    }
+  };
+
+  const handleSaveRpd = async () => {
+    if (!selectedPatientId || !newRpd.situacao) return;
+    setLoading(true);
+    try {
+      await saveRpd(selectedPatientId, newRpd);
+      setNewRpd({ situacao: '', pensamento: '', emocao: '', comportamento: '' });
+      loadRpds(selectedPatientId);
+      alert('RPD salvo com sucesso!');
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter State
   const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month'>('all');
@@ -271,6 +305,29 @@ Comportamentos: Evita reuniões, fala o mínimo possível, ensaia falas por hora
           >
             Coping Cat (Todas as Idades)
           </button>
+          <button 
+            onClick={() => setActiveTab('rpd')}
+            className={`px-6 py-2 text-sm font-bold rounded-xl transition-all ${activeTab === 'rpd' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Registros (RPD)
+          </button>
+        </div>
+      )}
+
+      {type === 'conceptualization' && (
+        <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl w-fit">
+          <button 
+            onClick={() => setActiveTab('standard')}
+            className={`px-6 py-2 text-sm font-bold rounded-xl transition-all ${activeTab === 'standard' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Conceituação
+          </button>
+          <button 
+            onClick={() => setActiveTab('rpd')}
+            className={`px-6 py-2 text-sm font-bold rounded-xl transition-all ${activeTab === 'rpd' ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Registros (RPD)
+          </button>
         </div>
       )}
 
@@ -449,7 +506,92 @@ Comportamentos: Evita reuniões, fala o mínimo possível, ensaia falas por hora
 
         {/* Result Area */}
         <div className="lg:col-span-8">
-          {result ? (
+          {activeTab === 'rpd' ? (
+            <div className="space-y-8">
+              <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                <h3 className="text-xl font-black mb-6 flex items-center gap-3">
+                  <div className="p-2 bg-emerald-50 rounded-xl text-emerald-600">
+                    <Plus size={20} />
+                  </div>
+                  Novo Registro Psicológico Diário (RPD)
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2">Situação</label>
+                    <textarea 
+                      value={newRpd.situacao}
+                      onChange={e => setNewRpd({...newRpd, situacao: e.target.value})}
+                      placeholder="O que aconteceu?"
+                      className="w-full p-4 rounded-2xl border border-gray-100 bg-gray-50 text-sm h-24 resize-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2">Pensamento Automático</label>
+                    <textarea 
+                      value={newRpd.pensamento}
+                      onChange={e => setNewRpd({...newRpd, pensamento: e.target.value})}
+                      placeholder="O que passou pela sua cabeça?"
+                      className="w-full p-4 rounded-2xl border border-gray-100 bg-gray-50 text-sm h-24 resize-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2">Emoção</label>
+                    <textarea 
+                      value={newRpd.emocao}
+                      onChange={e => setNewRpd({...newRpd, emocao: e.target.value})}
+                      placeholder="O que você sentiu?"
+                      className="w-full p-4 rounded-2xl border border-gray-100 bg-gray-50 text-sm h-24 resize-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2">Comportamento</label>
+                    <textarea 
+                      value={newRpd.comportamento}
+                      onChange={e => setNewRpd({...newRpd, comportamento: e.target.value})}
+                      placeholder="O que você fez?"
+                      className="w-full p-4 rounded-2xl border border-gray-100 bg-gray-50 text-sm h-24 resize-none"
+                    />
+                  </div>
+                </div>
+                <button 
+                  onClick={handleSaveRpd}
+                  disabled={loading || !newRpd.situacao || !selectedPatientId}
+                  className="w-full mt-6 py-4 bg-emerald-600 text-white rounded-2xl font-black shadow-lg shadow-emerald-100 disabled:opacity-50"
+                >
+                  Salvar RPD
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 px-2">Histórico de RPDs</h4>
+                {rpds.map(rpd => (
+                  <div key={rpd.id} className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-gray-400 uppercase">Situação</p>
+                      <p className="text-sm font-medium text-gray-700">{rpd.situacao}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-gray-400 uppercase">Pensamento</p>
+                      <p className="text-sm font-medium text-gray-700 italic">"{rpd.pensamento}"</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-gray-400 uppercase">Emoção</p>
+                      <p className="text-sm font-medium text-gray-700">{rpd.emocao}</p>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] font-black text-gray-400 uppercase">Comportamento</p>
+                      <p className="text-sm font-medium text-gray-700">{rpd.comportamento}</p>
+                    </div>
+                  </div>
+                ))}
+                {rpds.length === 0 && (
+                  <div className="bg-white p-12 rounded-[2rem] border border-gray-100 text-center text-gray-400">
+                    Nenhum RPD registrado para este paciente.
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : result ? (
             <motion.div 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
