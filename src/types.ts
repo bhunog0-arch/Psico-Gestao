@@ -3,7 +3,7 @@ export interface Patient {
   name: string;
   age: number;
   complaint: string;
-  status?: 'active' | 'discharged' | 'waiting';
+  status?: 'active' | 'discharged' | 'waiting' | 'followup';
   created_at?: string;
 }
 

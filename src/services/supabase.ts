@@ -4,14 +4,14 @@ import { Patient } from '../types';
 let supabaseInstance: SupabaseClient | null = null;
 
 export function isSupabaseConfigured() {
-  return !!process.env.VITE_SUPABASE_URL && !!process.env.VITE_SUPABASE_ANON_KEY;
+  return !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
 }
 
 export function getSupabase() {
   if (supabaseInstance) return supabaseInstance;
 
-  const supabaseUrl = process.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.warn('Supabase configuration missing. Database features will be disabled.');

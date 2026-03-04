@@ -405,11 +405,32 @@ function QuickAction({ title, desc, icon: Icon, onClick }: any) {
 
 function PatientsList({ patients, loading, selectedId, onSelect, onViewProntuario, refresh }: any) {
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'waiting' | 'followup'>('all');
 
-  const filtered = patients.filter((p: Patient) => 
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.complaint.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = patients.filter((p: Patient) => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
+                         p.complaint.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'active': return 'Ativo';
+      case 'waiting': return 'Espera';
+      case 'followup': return 'Acompanhamento';
+      default: return status;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active': return 'bg-emerald-100 text-emerald-700';
+      case 'waiting': return 'bg-amber-100 text-amber-700';
+      case 'followup': return 'bg-blue-100 text-blue-700';
+      default: return 'bg-gray-100 text-gray-700';
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -433,15 +454,30 @@ function PatientsList({ patients, loading, selectedId, onSelect, onViewProntuari
       </div>
 
       <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-50 bg-gray-50/30 flex items-center gap-3">
-          <Search size={20} className="text-gray-400" />
-          <input 
-            type="text" 
-            placeholder="Buscar por nome ou queixa..." 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="bg-transparent border-none focus:ring-0 text-base w-full placeholder:text-gray-400 font-medium"
-          />
+        <div className="p-6 border-b border-gray-50 bg-gray-50/30 flex flex-col md:flex-row gap-4 items-center">
+          <div className="flex items-center gap-3 flex-1 w-full">
+            <Search size={20} className="text-gray-400" />
+            <input 
+              type="text" 
+              placeholder="Buscar por nome ou queixa..." 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="bg-transparent border-none focus:ring-0 text-base w-full placeholder:text-gray-400 font-medium"
+            />
+          </div>
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 whitespace-nowrap">Filtrar:</label>
+            <select 
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+              className="bg-white border border-gray-100 rounded-xl px-4 py-2 text-xs font-bold text-gray-600 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            >
+              <option value="all">Todos</option>
+              <option value="active">Ativos</option>
+              <option value="waiting">Em Espera</option>
+              <option value="followup">Acompanhamento</option>
+            </select>
+          </div>
         </div>
         
         {loading ? (
@@ -485,10 +521,8 @@ function PatientsList({ patients, loading, selectedId, onSelect, onViewProntuari
                       <p className="text-sm text-gray-600 line-clamp-1 max-w-xs">{p.complaint}</p>
                     </td>
                     <td className="px-8 py-6">
-                      <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-                        p.status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                      }`}>
-                        {p.status === 'active' ? 'Ativo' : 'Espera'}
+                      <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${getStatusColor(p.status)}`}>
+                        {getStatusLabel(p.status)}
                       </span>
                     </td>
                     <td className="px-8 py-6 text-right">

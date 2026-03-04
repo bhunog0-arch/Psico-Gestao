@@ -1,6 +1,18 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+let aiInstance: GoogleGenAI | null = null;
+
+function getAI() {
+  if (aiInstance) return aiInstance;
+  
+  const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!apiKey || apiKey === "undefined") {
+    throw new Error("API Key do Gemini não encontrada. Certifique-se de configurar VITE_GEMINI_API_KEY no Netlify e realizar um novo Deploy.");
+  }
+  
+  aiInstance = new GoogleGenAI({ apiKey });
+  return aiInstance;
+}
 
 export const CONCEPTUALIZATION_PROMPT = `Você é um Psicólogo Clínico Sênior, PhD e especialista em Terapia Cognitivo-Comportamental (TCC) de Judith S. Beck.
 Sua missão é gerar uma CONCEITUAÇÃO COGNITIVA DE BECK ABSOLUTAMENTE COMPLETA, PROFUNDA e ESTRUTURADA.
@@ -44,6 +56,7 @@ ESTRUTURA DO PLANO:
    - Sessões 8-16: Exposições Graduadas (Plano F.E.A.R.) e Prevenção de Recaída.`;
 
 export async function generateConceptualization(patientData: string) {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: "gemini-3.1-pro-preview",
     contents: [{ parts: [{ text: `${CONCEPTUALIZATION_PROMPT}\n\nDados do Paciente:\n${patientData}` }] }],
@@ -52,6 +65,7 @@ export async function generateConceptualization(patientData: string) {
 }
 
 export async function generateGoldProtocol(disorder: string) {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: "gemini-3.1-pro-preview",
     contents: [{ parts: [{ text: `${GOLD_PROTOCOL_PROMPT}\n\nTranstorno/Demanda:\n${disorder}` }] }],
@@ -60,6 +74,7 @@ export async function generateGoldProtocol(disorder: string) {
 }
 
 export async function generateCopingCatPlan(patientInfo: string) {
+  const ai = getAI();
   const response = await ai.models.generateContent({
     model: "gemini-3-flash-preview",
     contents: [{ parts: [{ text: `${COPING_CAT_PROMPT}\n\nInformações do Paciente:\n${patientInfo}` }] }],
@@ -68,6 +83,7 @@ export async function generateCopingCatPlan(patientInfo: string) {
 }
 
 export async function generateSessionDetail(sessionNumber: number, context: string) {
+  const ai = getAI();
   const prompt = `Você é um terapeuta TCC aplicando o protocolo Coping Cat. Sua missão é detalhar a sessão ${sessionNumber} solicitada com foco em scripts práticos e acolhedores.
 Contexto do Paciente: ${context}
 
@@ -86,6 +102,7 @@ ESTRUTURA DA RESPOSTA:
 }
 
 export async function generateRPGEvent(situacao: string, area: string) {
+  const ai = getAI();
   const prompt = `Gere um evento de TCC para o jogo "A Busca do Girassol".
 Baseie-se nesta situação real de jovens: "${situacao}"
 Área: ${area}
@@ -102,6 +119,7 @@ Retorne em formato JSON com: title, description, situacao, pensamento, emocao, i
 }
 
 export async function analyzeRPGAction(card: any, currentEvent: any) {
+  const ai = getAI();
   const prompt = `O jogador usou a carta TCC "${card.name}" (Categoria: ${card.category}) no evento "${currentEvent.title}".
 Situação: ${currentEvent.situacao}
 Pensamento: ${currentEvent.pensamento}
