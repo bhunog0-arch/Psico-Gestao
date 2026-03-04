@@ -17,7 +17,8 @@ import {
   Bell,
   Settings,
   LogOut,
-  ArrowRight
+  ArrowRight,
+  Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import PortalDashboard from './components/PortalDashboard';
@@ -39,6 +40,14 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [apiKeyMissing, setApiKeyMissing] = useState(false);
+
+  useEffect(() => {
+    const key = import.meta.env.VITE_GEMINI_API_KEY;
+    if (!key || key === "undefined" || key === "") {
+      setApiKeyMissing(true);
+    }
+  }, []);
 
   useEffect(() => {
     // WebSocket for Realtime notifications
@@ -188,6 +197,19 @@ export default function App() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto relative bg-[#FAFAFA]">
+        {apiKeyMissing && (
+          <div className="bg-red-50 border-b border-red-100 p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3 text-red-700 text-sm font-medium">
+              <div className="p-2 bg-white rounded-lg shadow-sm">
+                <Info size={20} className="text-red-600" />
+              </div>
+              <p>
+                <strong>Atenção:</strong> Chave da API do Gemini não configurada. 
+                Adicione <strong>VITE_GEMINI_API_KEY</strong> no Netlify e faça um novo deploy.
+              </p>
+            </div>
+          </div>
+        )}
         {/* Top Header */}
         <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-gray-100 px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2 text-sm text-gray-500">

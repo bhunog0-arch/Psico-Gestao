@@ -6,12 +6,20 @@ function getAI() {
   if (aiInstance) return aiInstance;
   
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-  if (!apiKey || apiKey === "undefined") {
-    throw new Error("API Key do Gemini não encontrada. Certifique-se de configurar VITE_GEMINI_API_KEY no Netlify e realizar um novo Deploy.");
+  console.log("Gemini API Key detected:", apiKey ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` : "MISSING");
+  
+  if (!apiKey || apiKey === "undefined" || apiKey === "") {
+    console.error("Gemini API Key missing");
+    throw new Error("API Key do Gemini não encontrada. No Netlify, adicione VITE_GEMINI_API_KEY nas variáveis de ambiente e faça um novo deploy.");
   }
   
-  aiInstance = new GoogleGenAI({ apiKey });
-  return aiInstance;
+  try {
+    aiInstance = new GoogleGenAI({ apiKey });
+    return aiInstance;
+  } catch (e: any) {
+    console.error("Error initializing Gemini:", e);
+    throw new Error(`Erro ao inicializar Gemini: ${e.message}`);
+  }
 }
 
 export const CONCEPTUALIZATION_PROMPT = `Você é um Psicólogo Clínico Sênior, PhD e especialista em Terapia Cognitivo-Comportamental (TCC) de Judith S. Beck.
@@ -58,7 +66,7 @@ ESTRUTURA DO PLANO:
 export async function generateConceptualization(patientData: string) {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-3.1-pro-preview",
+    model: "gemini-3-flash-preview",
     contents: [{ parts: [{ text: `${CONCEPTUALIZATION_PROMPT}\n\nDados do Paciente:\n${patientData}` }] }],
   });
   return response.text;
@@ -67,7 +75,7 @@ export async function generateConceptualization(patientData: string) {
 export async function generateGoldProtocol(disorder: string) {
   const ai = getAI();
   const response = await ai.models.generateContent({
-    model: "gemini-3.1-pro-preview",
+    model: "gemini-3-flash-preview",
     contents: [{ parts: [{ text: `${GOLD_PROTOCOL_PROMPT}\n\nTranstorno/Demanda:\n${disorder}` }] }],
   });
   return response.text;
@@ -101,11 +109,13 @@ ESTRUTURA DA RESPOSTA:
   return response.text;
 }
 
-export async function generateRPGEvent(situacao: string, area: string) {
+export async function generateRPGEvent(situacao: string, area: string, difficulty: string = 'Médio', focus: string = 'Ansiedade Social') {
   const ai = getAI();
   const prompt = `Gere um evento de TCC para o jogo "A Busca do Girassol".
 Baseie-se nesta situação real de jovens: "${situacao}"
 Área: ${area}
+Foco Terapêutico: ${focus}
+Nível de Dificuldade: ${difficulty} (Afeta a intensidade da emoção e complexidade da situação)
 O evento deve seguir o modelo cognitivo: Situação -> Pensamentos Automáticos -> Emoções.
 Seja empático e realista para jovens de 12 a 19 anos.
 Retorne em formato JSON com: title, description, situacao, pensamento, emocao, intensidade (0-100).`;

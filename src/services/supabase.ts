@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
-import { Patient } from '../types';
+import { Patient, RPGProgress } from '../types';
 
 let supabaseInstance: SupabaseClient | null = null;
 
@@ -168,6 +168,38 @@ export async function saveRpd(patientId: string, rpd: { situacao: string; pensam
     .select();
   if (error) throw error;
   return data[0];
+}
+
+export async function saveRPGProgress(progress: Partial<RPGProgress>) {
+  const supabase = getSupabase();
+  if (!supabase) throw new Error('Supabase not configured');
+
+  const user = await getCurrentUser();
+  if (!user) throw new Error('User not authenticated');
+
+  const { data, error } = await supabase
+    .from('rpg_progress')
+    .upsert([{ ...progress, user_id: user.id }])
+    .select();
+  if (error) throw error;
+  return data[0];
+}
+
+export async function getRPGProgress() {
+  const supabase = getSupabase();
+  if (!supabase) return null;
+
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  const { data, error } = await supabase
+    .from('rpg_progress')
+    .select('*')
+    .eq('user_id', user.id)
+    .single();
+  
+  if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows returned"
+  return data;
 }
 
 export async function getDashboardStats() {

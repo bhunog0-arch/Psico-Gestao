@@ -14,11 +14,15 @@ import {
   User,
   Wand2,
   Volume2,
-  VolumeX
+  VolumeX,
+  Settings,
+  Save,
+  Target
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { generateRPGEvent, analyzeRPGAction, generateAvatar, generateAvatarImage } from '../services/gemini';
-import { RPGEvent, TCCCard, RPGStatus } from '../types';
+import { RPGEvent, TCCCard, RPGStatus, RPGProgress } from '../types';
+import { saveRPGProgress, getRPGProgress } from '../services/supabase';
 
 const INITIAL_CARDS: TCCCard[] = [
   { id: '1', name: 'Questionamento Socrático', category: 'Cognitiva', description: 'Questionar a evidência do pensamento.' },
@@ -26,6 +30,11 @@ const INITIAL_CARDS: TCCCard[] = [
   { id: '3', name: 'Exposição Gradual', category: 'Comportamental', description: 'Enfrentar o medo passo a passo.' },
   { id: '4', name: 'Cartão de Enfrentamento', category: 'Cognitiva', description: 'Lembrar de pensamentos alternativos.' },
   { id: '5', name: 'Busca de Apoio Social', category: 'Social', description: 'Conversar com alguém de confiança.' },
+  { id: '6', name: 'Reestruturação Cognitiva', category: 'Cognitiva', description: 'Identificar e desafiar pensamentos distorcidos.' },
+  { id: '7', name: 'Treino de Assertividade', category: 'Social', description: 'Expressar necessidades de forma clara e respeitosa.' },
+  { id: '8', name: 'Mindfulness (Atenção Plena)', category: 'Emocional', description: 'Focar no presente sem julgamento.' },
+  { id: '9', name: 'Ativação Comportamental', category: 'Comportamental', description: 'Agendar atividades prazerosas ou produtivas.' },
+  { id: '10', name: 'Resolução de Problemas', category: 'Cognitiva', description: 'Dividir um problema grande em partes menores.' },
 ];
 
 interface Character {
@@ -53,16 +62,74 @@ export default function TexRPG() {
   const [feedback, setFeedback] = useState<any>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [muted, setMuted] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [difficulty, setDifficulty] = useState('Médio');
+  const [focus, setFocus] = useState('Ansiedade Social');
 
-  // Audio refs
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => {
+    loadProgress();
+  }, []);
 
-  const playSound = (type: 'action' | 'success' | 'event') => {
+  const resetProgress = async () => {
+    if (!confirm('Tem certeza que deseja resetar todo o seu progresso? Isso não pode ser desfeito.')) return;
+    setCharacter(null);
+    setStatus({
+      ansiedade: 60,
+      confianca: 40,
+      evitacao: 50,
+      progresso: 10,
+    });
+    setHistory([]);
+    setCurrentEvent(null);
+    setFeedback(null);
+    playSound('click');
+  };
+
+  const loadProgress = async () => {
+    try {
+      const data = await getRPGProgress();
+      if (data) {
+        setCharacter(data.character);
+        setStatus(data.status);
+        setHistory(data.history);
+        setDifficulty(data.difficulty || 'Médio');
+        setFocus(data.focus || 'Ansiedade Social');
+        startNewEvent(data.difficulty, data.focus);
+      }
+    } catch (error) {
+      console.error('Error loading progress:', error);
+    }
+  };
+
+  const saveProgress = async () => {
+    if (!character) return;
+    setLoading(true);
+    try {
+      await saveRPGProgress({
+        character,
+        status,
+        history,
+        difficulty,
+        focus
+      });
+      alert('Progresso salvo com sucesso!');
+      playSound('success');
+    } catch (error) {
+      console.error('Error saving progress:', error);
+      alert('Erro ao salvar progresso.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const playSound = (type: 'action' | 'success' | 'event' | 'click' | 'error') => {
     if (muted) return;
     const sounds: any = {
       action: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3',
       success: 'https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3',
-      event: 'https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3'
+      event: 'https://assets.mixkit.co/active_storage/sfx/2019/2019-preview.mp3',
+      click: 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3',
+      error: 'https://assets.mixkit.co/active_storage/sfx/2572/2572-preview.mp3'
     };
     const audio = new Audio(sounds[type]);
     audio.volume = 0.3;
@@ -74,10 +141,11 @@ export default function TexRPG() {
     try {
       const description = await generateAvatar(newChar.nick, newChar.race, newChar.appearance);
       const avatarUrl = await generateAvatarImage(description);
-      setCharacter({ ...newChar, description, avatarUrl: avatarUrl || undefined });
+      const updatedChar = { ...newChar, description, avatarUrl: avatarUrl || undefined };
+      setCharacter(updatedChar);
       setCreating(false);
       playSound('success');
-      startNewEvent();
+      startNewEvent(difficulty, focus);
     } catch (error) {
       console.error(error);
     } finally {
@@ -85,21 +153,42 @@ export default function TexRPG() {
     }
   };
 
-  const startNewEvent = async () => {
+  const startNewEvent = async (diff = difficulty, foc = focus) => {
     setLoading(true);
     setFeedback(null);
     try {
-      const situacoes = [
-        "Apresentar um trabalho na escola",
-        "Pedir para entrar em um grupo de amigos",
-        "Fazer uma prova difícil",
-        "Conversar com alguém que você gosta",
-        "Ir a uma festa onde não conhece muita gente"
-      ];
-      const randomSituacao = situacoes[Math.floor(Math.random() * situacoes.length)];
-      const event = await generateRPGEvent(randomSituacao, "Social/Escolar");
+      const situacoes: any = {
+        'Ansiedade Social': [
+          "Apresentar um trabalho na escola",
+          "Pedir para entrar em um grupo de amigos",
+          "Conversar com alguém que você gosta",
+          "Ir a uma festa onde não conhece muita gente"
+        ],
+        'Autoestima': [
+          "Receber um elogio e não saber o que dizer",
+          "Olhar no espelho e se sentir insatisfeito",
+          "Comparar-se com alguém nas redes sociais",
+          "Cometer um erro pequeno e se culpar muito"
+        ],
+        'Escola/Estudos': [
+          "Fazer uma prova difícil",
+          "Receber uma nota baixa",
+          "Ter muita lição de casa acumulada",
+          "Não entender a explicação do professor"
+        ],
+        'Relacionamentos': [
+          "Ter uma discussão com um amigo",
+          "Sentir-se excluído de um plano",
+          "Precisar dizer 'não' para alguém",
+          "Lidar com um mal-entendido"
+        ]
+      };
+      
+      const options = situacoes[foc] || situacoes['Ansiedade Social'];
+      const randomSituacao = options[Math.floor(Math.random() * options.length)];
+      const event = await generateRPGEvent(randomSituacao, foc, diff, foc);
       setCurrentEvent(event);
-      setHistory(prev => [...prev, `Novo desafio: ${event.title}`]);
+      setHistory(prev => [`Novo desafio: ${event.title}`, ...prev]);
       playSound('event');
     } catch (error) {
       console.error(error);
@@ -123,10 +212,11 @@ export default function TexRPG() {
         progresso: Math.min(100, prev.progresso + (analysis.impacto?.progresso || 5)),
       }));
 
-      setHistory(prev => [...prev, `Usou ${card.name}: ${analysis.feedback.substring(0, 50)}...`]);
+      setHistory(prev => [`Usou ${card.name}: ${analysis.feedback.substring(0, 50)}...`, ...prev]);
       if (analysis.impacto?.progresso > 0) playSound('success');
     } catch (error) {
       console.error(error);
+      playSound('error');
     } finally {
       setLoading(false);
     }
@@ -238,13 +328,33 @@ export default function TexRPG() {
         </div>
         <div className="flex gap-3">
           <button 
+            onClick={() => {
+              playSound('click');
+              setShowSettings(!showSettings);
+            }}
+            className={`p-3 border rounded-xl transition-all ${showSettings ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-gray-100 text-gray-400 hover:bg-gray-50'}`}
+            title="Configurações"
+          >
+            <Settings size={20} />
+          </button>
+          <button 
+            onClick={() => {
+              playSound('click');
+              saveProgress();
+            }}
+            className="p-3 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 text-emerald-600 transition-colors"
+            title="Salvar Progresso"
+          >
+            <Save size={20} />
+          </button>
+          <button 
             onClick={() => setMuted(!muted)}
             className="p-3 bg-white border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors"
           >
             {muted ? <VolumeX size={20} className="text-gray-400" /> : <Volume2 size={20} className="text-emerald-600" />}
           </button>
           <button 
-            onClick={startNewEvent}
+            onClick={() => startNewEvent(difficulty, focus)}
             className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-sm font-bold shadow-sm"
           >
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
@@ -252,6 +362,65 @@ export default function TexRPG() {
           </button>
         </div>
       </header>
+
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-xl grid grid-cols-1 md:grid-cols-2 gap-6"
+          >
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2">
+                <Target size={14} />
+                Nível de Dificuldade
+              </label>
+              <div className="flex gap-2">
+                {['Fácil', 'Médio', 'Difícil'].map(d => (
+                  <button
+                    key={d}
+                    onClick={() => {
+                      playSound('click');
+                      setDifficulty(d);
+                    }}
+                    className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all ${difficulty === d ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 ml-2">
+                <Sparkles size={14} />
+                Foco Terapêutico
+              </label>
+              <select 
+                value={focus}
+                onChange={e => {
+                  playSound('click');
+                  setFocus(e.target.value);
+                }}
+                className="w-full p-3 rounded-xl border border-gray-100 bg-gray-50 text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none"
+              >
+                <option>Ansiedade Social</option>
+                <option>Autoestima</option>
+                <option>Escola/Estudos</option>
+                <option>Relacionamentos</option>
+              </select>
+            </div>
+            <div className="md:col-span-2 pt-4 border-t border-gray-50 flex justify-end">
+              <button 
+                onClick={resetProgress}
+                className="px-6 py-2 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+              >
+                Resetar Tudo
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Status Bar */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -289,10 +458,21 @@ export default function TexRPG() {
                   </div>
                 </div>
                 
-                <h3 className="text-3xl font-black text-gray-900 leading-tight">{currentEvent.title}</h3>
-                <p className="text-gray-600 leading-relaxed text-xl font-medium">
+                <motion.h3 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="text-3xl font-black text-gray-900 leading-tight"
+                >
+                  {currentEvent.title}
+                </motion.h3>
+                <motion.p 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-gray-600 leading-relaxed text-xl font-medium"
+                >
                   {currentEvent.description}
-                </p>
+                </motion.p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
                   <div className="p-6 bg-amber-50 rounded-3xl border border-amber-100 shadow-sm relative group">
@@ -315,8 +495,9 @@ export default function TexRPG() {
 
             {feedback && (
               <motion.div
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 className="mt-10 p-8 bg-emerald-900 text-white rounded-[2rem] shadow-2xl space-y-6 relative overflow-hidden"
               >
                 <div className="absolute top-0 right-0 p-12 bg-white/5 rounded-full blur-3xl -mr-12 -mt-12"></div>

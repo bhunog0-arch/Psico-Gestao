@@ -22,6 +22,8 @@ export interface RPGEvent {
   pensamento: string;
   emocao: string;
   intensidade: number;
+  difficulty?: 'Fácil' | 'Médio' | 'Difícil';
+  focus?: string;
 }
 
 export interface TCCCard {
@@ -36,4 +38,15 @@ export interface RPGStatus {
   confianca: number;
   evitacao: number;
   progresso: number;
+}
+
+export interface RPGProgress {
+  id?: string;
+  user_id: string;
+  character: any;
+  status: RPGStatus;
+  history: string[];
+  difficulty: string;
+  focus: string;
+  created_at?: string;
 }

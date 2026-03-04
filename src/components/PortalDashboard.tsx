@@ -195,9 +195,10 @@ export default function PortalDashboard({ type, externalPatientId, onPatientChan
         }
       }
       setResult(res);
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      setResult('Erro ao gerar conteúdo. Verifique sua conexão e tente novamente.');
+      const errorMessage = error?.message || 'Erro desconhecido';
+      setResult(`Erro ao gerar conteúdo: ${errorMessage}. Verifique se a chave da API do Gemini está configurada corretamente no Netlify.`);
     } finally {
       setLoading(false);
     }
