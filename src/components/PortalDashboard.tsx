@@ -15,7 +15,7 @@ import {
   User,
   Info
 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { 
@@ -57,6 +57,7 @@ export default function PortalDashboard({ type, externalPatientId, onPatientChan
   const [activeTab, setActiveTab] = useState<'standard' | 'copingcat' | 'rpd'>(type === 'protocols' ? 'standard' : 'standard');
   const [rpds, setRpds] = useState<any[]>([]);
   const [newRpd, setNewRpd] = useState({ situacao: '', pensamento: '', emocao: '', comportamento: '' });
+  const [expandedRpd, setExpandedRpd] = useState<string | null>(null);
 
   useEffect(() => {
     if (selectedPatientId) {
@@ -429,19 +430,27 @@ Comportamentos: Evita reuniões, fala o mínimo possível, ensaia falas por hora
                         loadFromHistory(record);
                       }
                     }}
-                    className="w-full text-left p-4 rounded-2xl hover:bg-emerald-50 border border-gray-50 hover:border-emerald-100 transition-all group"
+                    className="w-full text-left p-4 rounded-2xl hover:bg-emerald-50 border border-gray-100 hover:border-emerald-200 transition-all group bg-gray-50/30"
                   >
-                    <div className="flex justify-between items-start mb-1">
-                      <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">
-                        {new Date(record.created_at).toLocaleDateString()}
+                    <div className="flex justify-between items-center mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                        <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                          {new Date(record.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                        </p>
+                      </div>
+                      <p className="text-[9px] font-bold text-gray-400">
+                        {new Date(record.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                       </p>
-                      <ChevronRight size={12} className="text-gray-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all" />
                     </div>
-                    <p className="text-xs font-semibold text-gray-700 line-clamp-2 leading-relaxed">
-                      {record.input_data}
+                    <p className="text-xs font-bold text-gray-800 line-clamp-1 mb-1">
+                      {record.input_data.split('\n')[0]}
+                    </p>
+                    <p className="text-[10px] text-gray-500 line-clamp-2 leading-relaxed italic">
+                      {record.input_data.split('\n').slice(1).join(' ')}
                     </p>
                     {type === 'protocols' && (
-                      <div className="mt-2 flex items-center gap-1 text-[9px] font-bold text-emerald-600 uppercase">
+                      <div className="mt-3 pt-2 border-t border-emerald-100/50 flex items-center gap-1 text-[9px] font-black text-emerald-600 uppercase tracking-tighter">
                         <Plus size={10} /> Usar como Contexto
                       </div>
                     )}
@@ -591,23 +600,61 @@ Comportamentos: Evita reuniões, fala o mínimo possível, ensaia falas por hora
               <div className="space-y-4">
                 <h4 className="text-xs font-black uppercase tracking-[0.2em] text-gray-400 px-2">Histórico de RPDs</h4>
                 {rpds.map(rpd => (
-                  <div key={rpd.id} className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-gray-400 uppercase">Situação</p>
-                      <p className="text-sm font-medium text-gray-700">{rpd.situacao}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-gray-400 uppercase">Pensamento</p>
-                      <p className="text-sm font-medium text-gray-700 italic">"{rpd.pensamento}"</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-gray-400 uppercase">Emoção</p>
-                      <p className="text-sm font-medium text-gray-700">{rpd.emocao}</p>
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-[10px] font-black text-gray-400 uppercase">Comportamento</p>
-                      <p className="text-sm font-medium text-gray-700">{rpd.comportamento}</p>
-                    </div>
+                  <div 
+                    key={rpd.id} 
+                    className={`bg-white rounded-[2rem] shadow-sm border transition-all duration-300 overflow-hidden ${expandedRpd === rpd.id ? 'border-emerald-200 ring-4 ring-emerald-50' : 'border-gray-100 hover:border-emerald-100'}`}
+                  >
+                    <button 
+                      onClick={() => setExpandedRpd(expandedRpd === rpd.id ? null : rpd.id)}
+                      className="w-full text-left p-6 flex items-center justify-between group"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform">
+                          <History size={20} />
+                        </div>
+                        <div>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">
+                            {new Date(rpd.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+                          </p>
+                          <p className="text-sm font-bold text-gray-800 line-clamp-1">
+                            {rpd.situacao}
+                          </p>
+                        </div>
+                      </div>
+                      <div className={`p-2 rounded-lg bg-gray-50 text-gray-400 transition-transform duration-300 ${expandedRpd === rpd.id ? 'rotate-180 bg-emerald-50 text-emerald-600' : ''}`}>
+                        <ChevronRight size={16} className="rotate-90" />
+                      </div>
+                    </button>
+
+                    <AnimatePresence>
+                      {expandedRpd === rpd.id && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.3, ease: "easeInOut" }}
+                        >
+                          <div className="px-6 pb-6 pt-2 grid grid-cols-1 md:grid-cols-2 gap-6 border-t border-gray-50">
+                            <div className="space-y-2 p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+                              <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Situação</p>
+                              <p className="text-sm font-medium text-gray-700 leading-relaxed">{rpd.situacao}</p>
+                            </div>
+                            <div className="space-y-2 p-4 bg-amber-50/50 rounded-2xl border border-amber-100">
+                              <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Pensamento Automático</p>
+                              <p className="text-sm font-medium text-gray-700 leading-relaxed italic">"{rpd.pensamento}"</p>
+                            </div>
+                            <div className="space-y-2 p-4 bg-rose-50/50 rounded-2xl border border-rose-100">
+                              <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest">Emoção</p>
+                              <p className="text-sm font-medium text-gray-700 leading-relaxed">{rpd.emocao}</p>
+                            </div>
+                            <div className="space-y-2 p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+                              <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Comportamento</p>
+                              <p className="text-sm font-medium text-gray-700 leading-relaxed">{rpd.comportamento}</p>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 ))}
                 {rpds.length === 0 && (
