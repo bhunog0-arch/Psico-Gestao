@@ -14,12 +14,15 @@ import {
   Plus,
   User,
   Info,
-  Library
+  Library,
+  Printer
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import ProtocolosList from './ProtocolosList';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { 
   generateConceptualization, 
   generateGoldProtocol, 
@@ -60,6 +63,7 @@ export default function PortalDashboard({ type, externalPatientId, onPatientChan
   const [rpds, setRpds] = useState<any[]>([]);
   const [newRpd, setNewRpd] = useState({ situacao: '', pensamento: '', emocao: '', comportamento: '' });
   const [expandedRpd, setExpandedRpd] = useState<string | null>(null);
+  const reportRef = React.useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (selectedPatientId) {
@@ -198,6 +202,11 @@ export default function PortalDashboard({ type, externalPatientId, onPatientChan
         } else {
           res = await generateGoldProtocol(input) || '';
         }
+        // Auto-save protocol if patient selected
+        if (selectedPatientId) {
+          await saveConceptualization(selectedPatientId, input, res);
+          loadHistory(selectedPatientId);
+        }
       }
       setResult(res);
     } catch (error: any) {
@@ -230,6 +239,41 @@ export default function PortalDashboard({ type, externalPatientId, onPatientChan
       setResult(res || '');
     } catch (error) {
       console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!reportRef.current || !result) return;
+    
+    setLoading(true);
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      
+      const fileName = `Relatorio_${selectedPatientId || 'Clinico'}_${new Date().getTime()}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Erro ao gerar PDF. Tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -558,7 +602,10 @@ Comportamentos: Evita reuniões, fala o mínimo possível, ensaia falas por hora
                   </div>
                   Biblioteca de Protocolos TCC
                 </h3>
-                <ProtocolosList />
+                <ProtocolosList 
+                  patientId={selectedPatientId} 
+                  onSave={() => selectedPatientId && loadHistory(selectedPatientId)} 
+                />
               </div>
             </div>
           ) : activeTab === 'rpd' ? (
@@ -701,7 +748,7 @@ Comportamentos: Evita reuniões, fala o mínimo possível, ensaia falas por hora
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  {selectedPatientId && type === 'conceptualization' && (
+                  {selectedPatientId && (
                     <button 
                       onClick={handleSaveManual}
                       className="p-3 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
@@ -710,12 +757,24 @@ Comportamentos: Evita reuniões, fala o mínimo possível, ensaia falas por hora
                       <Save size={22} />
                     </button>
                   )}
-                  <button className="p-3 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all">
-                    <Download size={22} />
+                  <button 
+                    onClick={handleDownloadPDF}
+                    disabled={loading}
+                    className="p-3 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all disabled:opacity-50"
+                    title="Baixar PDF"
+                  >
+                    {loading ? <Loader2 className="animate-spin" size={22} /> : <Download size={22} />}
                   </button>
                 </div>
               </div>
-              <div className="prose prose-emerald max-w-none prose-sm leading-relaxed">
+              <div ref={reportRef} className="prose prose-emerald max-w-none prose-sm leading-relaxed p-4 bg-white">
+                <div className="mb-8 border-b-2 border-emerald-100 pb-4">
+                  <h1 className="text-2xl font-bold text-emerald-800 mb-2">Relatório PsicoGestão</h1>
+                  <div className="flex justify-between text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                    <span>Paciente: {patients.find(p => p.id === selectedPatientId)?.name || 'Não Identificado'}</span>
+                    <span>Data: {new Date().toLocaleDateString('pt-BR')}</span>
+                  </div>
+                </div>
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>{result}</ReactMarkdown>
               </div>
             </motion.div>

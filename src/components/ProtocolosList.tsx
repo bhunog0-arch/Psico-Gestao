@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
-import { BookOpen, Loader2, ChevronRight, X } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { BookOpen, Loader2, ChevronRight, X, Download, Save } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { generateGoldProtocol, generateCopingCatPlan } from '../services/gemini';
+import { saveConceptualization } from '../services/supabase';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 const PROTOCOLS = [
   { id: 'toc', title: 'TOC (Transtorno Obsessivo-Compulsivo)', description: 'Protocolo baseado em Exposição e Prevenção de Resposta (EPR).', type: 'gold' },
@@ -14,10 +17,17 @@ const PROTOCOLS = [
   { id: 'tag', title: 'Ansiedade Generalizada (TAG)', description: 'Protocolo focado em tolerância à incerteza e preocupação.', type: 'gold' },
 ];
 
-export default function ProtocolosList() {
+interface ProtocolosListProps {
+  patientId?: string;
+  onSave?: () => void;
+}
+
+export default function ProtocolosList({ patientId, onSave }: ProtocolosListProps) {
   const [selectedProtocol, setSelectedProtocol] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [content, setContent] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const modalContentRef = useRef<HTMLDivElement>(null);
 
   const handleViewDetails = async (protocol: any) => {
     setLoading(true);
@@ -33,6 +43,56 @@ export default function ProtocolosList() {
     } catch (error) {
       console.error(error);
       alert('Erro ao carregar detalhes do protocolo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveProtocol = async () => {
+    if (!patientId || !content || !selectedProtocol) return;
+    setSaving(true);
+    try {
+      await saveConceptualization(patientId, `Protocolo: ${selectedProtocol.title}`, content);
+      if (onSave) onSave();
+      alert('Protocolo salvo no histórico do paciente!');
+    } catch (error) {
+      console.error(error);
+      alert('Erro ao salvar protocolo.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!modalContentRef.current || !content) return;
+    
+    setLoading(true);
+    try {
+      const canvas = await html2canvas(modalContentRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
+      
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      
+      const fileName = `Protocolo_${selectedProtocol.id}_${new Date().getTime()}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Erro ao gerar PDF.');
     } finally {
       setLoading(false);
     }
@@ -81,15 +141,36 @@ export default function ProtocolosList() {
                   </div>
                   <h2 className="text-xl font-black text-gray-900">{selectedProtocol.title}</h2>
                 </div>
-                <button 
-                  onClick={() => {
-                    setSelectedProtocol(null);
-                    setContent(null);
-                  }}
-                  className="p-2 hover:bg-gray-200 rounded-full transition-colors"
-                >
-                  <X size={24} />
-                </button>
+                <div className="flex items-center gap-2">
+                  {patientId && content && !loading && (
+                    <button 
+                      onClick={handleSaveProtocol}
+                      disabled={saving}
+                      className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                      title="Salvar no Histórico"
+                    >
+                      {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
+                    </button>
+                  )}
+                  {content && !loading && (
+                    <button 
+                      onClick={handleDownloadPDF}
+                      className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"
+                      title="Baixar PDF"
+                    >
+                      <Download size={20} />
+                    </button>
+                  )}
+                  <button 
+                    onClick={() => {
+                      setSelectedProtocol(null);
+                      setContent(null);
+                    }}
+                    className="p-2 hover:bg-gray-200 rounded-full transition-colors"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
               </div>
 
               <div className="flex-1 overflow-y-auto p-8 custom-scrollbar bg-white">
@@ -99,7 +180,14 @@ export default function ProtocolosList() {
                     <p className="text-sm font-bold text-gray-400 uppercase tracking-widest animate-pulse">Consultando IA Clínica...</p>
                   </div>
                 ) : (
-                  <div className="prose prose-emerald max-w-none markdown-body">
+                  <div ref={modalContentRef} className="prose prose-emerald max-w-none markdown-body p-4 bg-white">
+                    <div className="mb-8 border-b-2 border-emerald-100 pb-4">
+                      <h1 className="text-2xl font-bold text-emerald-800 mb-2">{selectedProtocol.title}</h1>
+                      <div className="flex justify-between text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+                        <span>Referência: Protocolo Padrão-Ouro</span>
+                        <span>Data: {new Date().toLocaleDateString('pt-BR')}</span>
+                      </div>
+                    </div>
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {content || ''}
                     </ReactMarkdown>
